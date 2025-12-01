@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import base64  # 캡슐 까는 도구
 import shutil
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -11,40 +12,27 @@ SHEET_NAME = '비디오관리_CMS'
 OUTPUT_DIR = os.path.join(BASE_DIR, 'site')
 TEMPLATE_EMBED = os.path.join(BASE_DIR, 'template_embed.html')
 TEMPLATE_HUB = os.path.join(BASE_DIR, 'template_hub.html')
-
-# 임시로 만들 인증 파일 경로
-TEMP_JSON_FILE = os.path.join(BASE_DIR, 'google_secret.json')
 # ========================================
 
 def get_sheet_data():
     print("🔄 구글 시트 연결 시도...")
     
-    # 1. 깃허브 Secret에서 내용 가져오기
-    json_str = os.environ.get('GOOGLE_API_KEY')
-    if not json_str:
+    # 1. 깃허브 Secret (Base64 코드) 가져오기
+    b64_key = os.environ.get('GOOGLE_API_KEY')
+    if not b64_key:
         print("❌ [에러] GOOGLE_API_KEY가 없습니다.")
         sys.exit(1)
 
     try:
-        # 2. JSON 파싱 및 키 보정
-        creds_dict = json.loads(json_str)
+        # 2. 캡슐 까기 (Base64 -> 원래 JSON 복구)
+        # 이 과정에서 줄바꿈 문자가 완벽하게 복원됩니다.
+        decoded_bytes = base64.b64decode(b64_key)
+        decoded_str = decoded_bytes.decode('utf-8')
+        creds_dict = json.loads(decoded_str)
         
-        # [핵심] 줄바꿈 문자 강제 치환 (가장 강력한 방법)
-        if 'private_key' in creds_dict:
-            # 윈도우/리눅스 차이로 생기는 모든 줄바꿈 패턴을 정규화
-            pk = creds_dict['private_key']
-            pk = pk.replace('\\n', '\n') 
-            creds_dict['private_key'] = pk
-
-        # 3. 임시 파일로 저장 (로컬 환경 흉내내기)
-        with open(TEMP_JSON_FILE, 'w', encoding='utf-8') as f:
-            json.dump(creds_dict, f)
-        
-        print("🔑 임시 인증 파일 생성 완료.")
-
-        # 4. 파일에서 읽어오기
+        # 3. 연결 설정
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(TEMP_JSON_FILE, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         
         sh = client.open(SHEET_NAME)
@@ -52,16 +40,10 @@ def get_sheet_data():
         records = ws.get_all_records()
         
         print(f"✅ 데이터 {len(records)}개 가져옴.")
-        
-        # 보안을 위해 임시 파일 삭제
-        if os.path.exists(TEMP_JSON_FILE):
-            os.remove(TEMP_JSON_FILE)
-            
         return records
         
     except Exception as e:
         print(f"❌ [구글 시트 에러] 연결 실패: {e}")
-        # 디버깅을 위해 에러 상세 출력
         import traceback
         traceback.print_exc()
         sys.exit(1)
