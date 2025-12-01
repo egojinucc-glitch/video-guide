@@ -1,9 +1,11 @@
 name: Build and Deploy Video CMS
 
 on:
-  workflow_dispatch:      # 1. 내가 버튼 누르면 실행 (수동)
+  push:
+    branches: ["main"]
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'   # 2. 매일 밤 12시(한국 아침 9시)에 자동 실행
+    - cron: '0 0 * * *'
 
 permissions:
   contents: write
@@ -28,7 +30,13 @@ jobs:
         run: |
           python build.py
 
+      # ▼▼▼ 여기가 수정되었습니다 (디버깅용) ▼▼▼
+      - name: Check Folder (Debug)
+        run: |
+          ls -R site
+
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: site
+          token: ${{ secrets.GITHUB_TOKEN }}  # 👈 이 열쇠를 강제로 쥐여줌!
