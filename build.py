@@ -1,6 +1,6 @@
 import os
 import sys
-import json  # 추가됨
+import json
 import shutil
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -16,20 +16,21 @@ TEMPLATE_HUB = os.path.join(BASE_DIR, 'template_hub.html')
 def get_sheet_data():
     print("🔄 구글 시트 연결 시도...")
     
-    # [변경점] 파일이 아니라 깃허브 금고(환경변수)에서 키를 가져옵니다.
     json_str = os.environ.get('GOOGLE_API_KEY')
-    
     if not json_str:
         print("❌ [에러] GOOGLE_API_KEY가 없습니다.")
-        print("👉 Settings -> Secrets에 키를 등록했는지 확인하세요.")
         sys.exit(1)
 
     try:
-        # 문자열을 JSON 객체로 변환
         creds_dict = json.loads(json_str)
         
+        # 🔥🔥🔥 여기가 핵심 수정 사항입니다!!! 🔥🔥🔥
+        # 깃허브 Secret에서 넘어올 때 깨진 줄바꿈 문자를 강제로 복구합니다.
+        if 'private_key' in creds_dict:
+            creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n')
+        # -----------------------------------------------
+
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        # from_json_keyfile_dict 함수 사용 (파일 X, 딕셔너리 O)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         
@@ -42,6 +43,9 @@ def get_sheet_data():
         
     except Exception as e:
         print(f"❌ [구글 시트 에러] 연결 실패: {e}")
+        # 에러 내용을 더 자세히 출력해서 디버깅 도움
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 def build_site():
