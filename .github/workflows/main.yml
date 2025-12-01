@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies 📦
         run: |
-          pip install gspread oauth2client
+          pip install gspread
 
       - name: Build Site 🔨
         env:  # [추가됨] 여기서 금고 열쇠를 파이썬에게 전달합니다
