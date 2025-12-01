@@ -1,7 +1,9 @@
 name: Build and Deploy Video CMS
 
 on:
-  workflow_dispatch:  # 수동 실행 버튼 (나중에 자동화 가능)
+  push:                # [추가됨] 파일이 업로드(Push) 되면 자동으로 실행!
+    branches: ["main"]
+  workflow_dispatch:   # 수동 버튼도 유지
 
 permissions:
   contents: write
@@ -29,4 +31,4 @@ jobs:
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: site # build.py가 결과물을 저장하는 폴더
+          folder: site
