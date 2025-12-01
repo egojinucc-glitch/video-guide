@@ -27,16 +27,13 @@ jobs:
           pip install gspread oauth2client
 
       - name: Build Site 🔨
+        env:  # [추가됨] 여기서 금고 열쇠를 파이썬에게 전달합니다
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           python build.py
-
-      # ▼▼▼ 여기가 수정되었습니다 (디버깅용) ▼▼▼
-      - name: Check Folder (Debug)
-        run: |
-          ls -R site
 
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: site
-          token: ${{ secrets.GITHUB_TOKEN }}  # 👈 이 열쇠를 강제로 쥐여줌!
+          token: ${{ secrets.GITHUB_TOKEN }}
