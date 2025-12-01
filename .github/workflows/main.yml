@@ -1,9 +1,9 @@
 name: Build and Deploy Video CMS
 
 on:
-  push:                # [추가됨] 파일이 업로드(Push) 되면 자동으로 실행!
-    branches: ["main"]
-  workflow_dispatch:   # 수동 버튼도 유지
+  workflow_dispatch:      # 1. 내가 버튼 누르면 실행 (수동)
+  schedule:
+    - cron: '0 0 * * *'   # 2. 매일 밤 12시(한국 아침 9시)에 자동 실행
 
 permissions:
   contents: write
