@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Player</title>
-    <style>body { margin: 0; padding: 0; background: black; overflow: hidden; }</style>
+    <title>Video Redirect</title>
+    <style>
+        body { margin: 0; padding: 0; background: black; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-family: sans-serif; }
+    </style>
 </head>
 <body>
+    <div id="msg">영상 로딩 중...</div>
     <script>
         // 파이썬이 이 부분을 실제 ID로 바꿔치기 합니다
         var videoId = "uT5UGbX-cFw";
         
-        if (videoId && videoId !== "uT5UGbX-cFw") {
-            window.location.replace("https://www.youtube.com/embed/" + videoId + "?autoplay=1&mute=1&rel=0");
+        // ID가 5글자 이상이면(정상적인 ID라면) 바로 이동
+        if (videoId.length > 5) {
+            var url = "https://www.youtube.com/embed/" + videoId + "?autoplay=1&mute=1&rel=0";
+            window.location.replace(url);
         } else {
-            document.body.innerHTML = "<div style='color:white;text-align:center;padding-top:20%;'>영상이 없습니다.</div>";
+            document.getElementById('msg').innerText = "등록된 영상이 없습니다.";
         }
     </script>
 </body>
