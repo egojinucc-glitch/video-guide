@@ -1,28 +1,21 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Redirect</title>
-    <style>
-        body { margin: 0; padding: 0; background: black; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-family: sans-serif; }
-    </style>
-</head>
-<body>
-    <div id="msg">영상 로딩 중...</div>
-    <script>
-        var videoId = "{{VIDEO_ID}}";
+<!-- 기존 iframe 생성 코드 대신 -->
+<script>
+    var videoId = "{{VIDEO_ID}}";
+    
+    if (videoId.length > 5) {
+        var iframe = document.createElement('iframe');
+        iframe.src = "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1&rel=0&playsinline=1";
+        iframe.style.width = "100%";
+        iframe.style.height = "100vh";
+        iframe.style.border = "none";
+        iframe.allow = "autoplay; encrypted-media";
         
-        if (videoId.length > 5) {
-            // 1. youtube-nocookie 사용
-            // 2. playlist 파라미터에 자기 자신 ID를 넣음 (루프/단일재생목록 효과로 광고 스킵 유도)
-            var url = "https://www.youtube-nocookie.com/embed/" + videoId + 
-                      "?autoplay=1&mute=1&rel=0&loop=1&playlist=" + videoId;
-            
-            window.location.replace(url);
-        } else {
-            document.getElementById('msg').innerText = "등록된 영상이 없습니다.";
-        }
-    </script>
-</body>
-</html>
+        // 핵심: 이 속성이 없으면 깃허브가 출처가 되지만, 
+        // 이걸 조절하면 유튜브가 출처를 헷갈리게 할 수 있음
+        iframe.referrerPolicy = "no-referrer-when-downgrade"; 
+        
+        document.body.appendChild(iframe);
+    } else {
+        document.getElementById('msg').innerText = "영상 없음";
+    }
+</script>
