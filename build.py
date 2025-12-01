@@ -1,10 +1,8 @@
 import os
 import sys
 import json
-import base64  # 캡슐 까는 도구
 import shutil
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 
 # ================= 설정 =================
 BASE_DIR = os.getcwd()
@@ -17,25 +15,23 @@ TEMPLATE_HUB = os.path.join(BASE_DIR, 'template_hub.html')
 def get_sheet_data():
     print("🔄 구글 시트 연결 시도...")
     
-    # 1. 깃허브 Secret (Base64 코드) 가져오기
-    b64_key = os.environ.get('GOOGLE_API_KEY')
-    if not b64_key:
+    json_str = os.environ.get('GOOGLE_API_KEY')
+    if not json_str:
         print("❌ [에러] GOOGLE_API_KEY가 없습니다.")
         sys.exit(1)
 
     try:
-        # 2. 캡슐 까기 (Base64 -> 원래 JSON 복구)
-        # 이 과정에서 줄바꿈 문자가 완벽하게 복원됩니다.
-        decoded_bytes = base64.b64decode(b64_key)
-        decoded_str = decoded_bytes.decode('utf-8')
-        creds_dict = json.loads(decoded_str)
+        # JSON 파싱
+        creds_dict = json.loads(json_str)
         
-        # 3. 연결 설정
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
+        # [핵심] 줄바꿈 문자 강제 치환 (이건 필수입니다)
+        if 'private_key' in creds_dict:
+            creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n')
+
+        # gspread 최신 인증 방식 사용 (oauth2client 제거)
+        gc = gspread.service_account_from_dict(creds_dict)
         
-        sh = client.open(SHEET_NAME)
+        sh = gc.open(SHEET_NAME)
         ws = sh.worksheet('Master_Mapping')
         records = ws.get_all_records()
         
@@ -44,6 +40,7 @@ def get_sheet_data():
         
     except Exception as e:
         print(f"❌ [구글 시트 에러] 연결 실패: {e}")
+        # 어떤 에러인지 정확히 보기 위해 출력
         import traceback
         traceback.print_exc()
         sys.exit(1)
