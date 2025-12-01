@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>body { margin: 0; padding: 0; background: black; overflow: hidden; }</style>
+</head>
+<body>
+    <script>
+        // 파이썬이 이 부분을 실제 ID로 바꿔치기 합니다
+        var videoId = "vYOZZXXYJAY";
+        
+        if (videoId && videoId !== "vYOZZXXYJAY") {
+            window.location.replace("https://www.youtube.com/embed/" + videoId + "?autoplay=1&mute=1&rel=0");
+        } else {
+            document.body.innerHTML = "<div style='color:white;text-align:center;padding-top:20%;'>영상이 없습니다.</div>";
+        }
+    </script>
+</body>
+</html>
