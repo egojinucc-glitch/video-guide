@@ -21,16 +21,11 @@ def get_sheet_data():
         sys.exit(1)
 
     try:
-        # JSON 파싱
         creds_dict = json.loads(json_str)
-        
-        # [핵심] 줄바꿈 문자 강제 치환 (이건 필수입니다)
         if 'private_key' in creds_dict:
             creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n')
 
-        # gspread 최신 인증 방식 사용 (oauth2client 제거)
         gc = gspread.service_account_from_dict(creds_dict)
-        
         sh = gc.open(SHEET_NAME)
         ws = sh.worksheet('Master_Mapping')
         records = ws.get_all_records()
@@ -40,7 +35,6 @@ def get_sheet_data():
         
     except Exception as e:
         print(f"❌ [구글 시트 에러] 연결 실패: {e}")
-        # 어떤 에러인지 정확히 보기 위해 출력
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -63,26 +57,43 @@ def build_site():
     # 3. 데이터 처리
     data = get_sheet_data()
     
+    # ★★★ 디버깅: 첫 번째 행의 컬럼명 출력 ★★★
+    if data:
+        print("\n📋 [디버그] 시트 컬럼명:")
+        print(list(data[0].keys()))
+        print("\n📋 [디버그] 첫 번째 행 데이터:")
+        for key, value in data[0].items():
+            print(f"  '{key}': '{value}'")
+        print()
+    
     grouped_data = {}
     valid_count = 0
     
-    for row in data:
-        # 카테고리가 '상세'인 행만 처리
+    for idx, row in enumerate(data):
+        # ★★★ 디버깅: 각 행 처리 과정 출력 ★★★
         category = str(row.get('카테고리', '')).strip()
-        if category != '상세':
-            continue
-        
         product_code = str(row.get('상품 코드', '')).strip()
-        if not product_code or len(product_code) != 6:
-            continue
-        valid_count += 1
-        
         video_id = str(row.get('Video ID', '')).strip()
         
-        # Video ID가 없으면 embed 생성 스킵 (비유튜브 영상)
-        if not video_id:
-            print(f"⚠️ {product_code}: Video ID 없음 - embed 스킵")
+        print(f"행 {idx+2}: 카테고리='{category}', 상품코드='{product_code}', VideoID='{video_id}'")
+        
+        # 카테고리가 '상세'인 행만 처리
+        if category != '상세':
+            print(f"  → 스킵 (카테고리가 '상세'가 아님)")
             continue
+        
+        # 상품 코드 검증
+        if not product_code:
+            print(f"  → 스킵 (상품 코드 없음)")
+            continue
+            
+        # Video ID 검증
+        if not video_id:
+            print(f"  → 스킵 (Video ID 없음)")
+            continue
+        
+        valid_count += 1
+        print(f"  → ✅ 유효")
         
         item = {
             'category': category,
@@ -90,16 +101,20 @@ def build_site():
             'title': row.get('영상 제목', ''),
             'product_code': product_code
         }
+        
         if product_code not in grouped_data:
             grouped_data[product_code] = []
         grouped_data[product_code].append(item)
+    
+    print(f"\n📊 유효한 행: {valid_count}개")
+    print(f"📊 그룹 수: {len(grouped_data)}개")
         
     # 4. 파일 생성
-    print("🔨 HTML 파일 생성 시작...")
+    print("\n🔨 HTML 파일 생성 시작...")
     file_count = 0
     
     for code, videos in grouped_data.items():
-        # Embed - '상세' 카테고리 영상만 (이미 필터링됨)
+        # Embed
         target_vid = videos[0]['video_id'] if videos else None
         
         if target_vid:
@@ -121,8 +136,11 @@ def build_site():
     print(f"🎉 최종 완료! 생성된 페이지 수: {file_count}")
     if file_count == 0:
         print("❌ [경고] 생성된 파일이 0개입니다.")
+        print("\n💡 확인사항:")
+        print("  1. '카테고리' 컬럼에 '상세' 값이 있는지")
+        print("  2. '상품 코드' 컬럼에 값이 있는지")
+        print("  3. 'Video ID' 컬럼에 값이 있는지")
         sys.exit(1)
 
 if __name__ == '__main__':
     build_site()
-
