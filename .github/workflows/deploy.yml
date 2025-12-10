@@ -1,10 +1,7 @@
 name: Build and Deploy to FTP
 
 on:
-  # 수동 실행 버튼
   workflow_dispatch:
-  
-  # main 브랜치에 push 시 자동 실행
   push:
     branches: [main]
 
@@ -13,34 +10,37 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. 코드 가져오기
       - name: Checkout
         uses: actions/checkout@v4
       
-      # 2. Python 설정
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
-      # 3. 필요한 패키지 설치
       - name: Install dependencies
         run: pip install gspread
       
-      # 4. build.py 실행 (site/ 폴더 생성)
       - name: Build site
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: python build.py
       
-      # 5. GitHub Pages 배포 (백업/테스트용)
+      # ★ 생성된 파일 목록 확인 (디버깅용)
+      - name: List generated files
+        run: |
+          echo "=== embed 폴더 ==="
+          ls -la ./site/embed/ || echo "embed 폴더 없음"
+          echo "=== hub 폴더 ==="
+          ls -la ./site/hub/ || echo "hub 폴더 없음"
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
       
-      # 6. FTP 업로드 (메인 - 고도몰 서버)
+      # ★ FTP 동기화 (서버에서 없는 파일 삭제)
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -49,3 +49,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./site/
           server-dir: ${{ secrets.FTP_PATH }}
+          dangerous-clean-slate: true  # ★ 서버 폴더 완전 동기화
