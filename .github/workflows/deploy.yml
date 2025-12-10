@@ -26,13 +26,26 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: python build.py
       
-      # ★ 생성된 파일 목록 확인 (디버깅용)
       - name: List generated files
         run: |
           echo "=== embed 폴더 ==="
           ls -la ./site/embed/ || echo "embed 폴더 없음"
           echo "=== hub 폴더 ==="
           ls -la ./site/hub/ || echo "hub 폴더 없음"
+          echo "=== 파일 개수 ==="
+          EMBED_COUNT=$(ls -1 ./site/embed/*.html 2>/dev/null | wc -l)
+          HUB_COUNT=$(ls -1 ./site/hub/*.html 2>/dev/null | wc -l)
+          echo "embed: $EMBED_COUNT개, hub: $HUB_COUNT개"
+      
+      # ★ 최소 파일 수 검증 (안전장치)
+      - name: Validate build output
+        run: |
+          EMBED_COUNT=$(ls -1 ./site/embed/*.html 2>/dev/null | wc -l)
+          if [ "$EMBED_COUNT" -lt 1 ]; then
+            echo "❌ 생성된 파일이 없습니다. 배포 중단."
+            exit 1
+          fi
+          echo "✅ 검증 통과: ${EMBED_COUNT}개 파일"
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -40,7 +53,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
       
-      # ★ FTP 동기화 (서버에서 없는 파일 삭제)
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -49,4 +61,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./site/
           server-dir: ${{ secrets.FTP_PATH }}
-          dangerous-clean-slate: true  # ★ 서버 폴더 완전 동기화
+          dangerous-clean-slate: true
