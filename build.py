@@ -67,27 +67,40 @@ def build_site():
     valid_count = 0
     
     for row in data:
-        raw_code = str(row.get('이지어드민코드', '')).strip()
-        if not raw_code: continue
-        ez_code = raw_code.lstrip('0')
+        # 카테고리가 '상세'인 행만 처리
+        category = str(row.get('카테고리', '')).strip()
+        if category != '상세':
+            continue
+        
+        product_code = str(row.get('상품 코드', '')).strip()
+        if not product_code or len(product_code) != 6:
+            continue
         valid_count += 1
         
+        video_id = str(row.get('Video ID', '')).strip()
+        
+        # Video ID가 없으면 embed 생성 스킵 (비유튜브 영상)
+        if not video_id:
+            print(f"⚠️ {product_code}: Video ID 없음 - embed 스킵")
+            continue
+        
         item = {
-            'category': row.get('카테고리', ''),
-            'video_id': row.get('Video ID', ''),
-            'title': row.get('영상제목(자동)', '')
+            'category': category,
+            'video_id': video_id,
+            'title': row.get('영상 제목', ''),
+            'product_code': product_code
         }
-        if ez_code not in grouped_data: grouped_data[ez_code] = []
-        grouped_data[ez_code].append(item)
+        if product_code not in grouped_data:
+            grouped_data[product_code] = []
+        grouped_data[product_code].append(item)
         
     # 4. 파일 생성
     print("🔨 HTML 파일 생성 시작...")
     file_count = 0
     
     for code, videos in grouped_data.items():
-        # Embed
-        target_vid = next((v['video_id'] for v in videos if v['category'] == '상세영상'), None)
-        if not target_vid and videos: target_vid = videos[0]['video_id']
+        # Embed - '상세' 카테고리 영상만 (이미 필터링됨)
+        target_vid = videos[0]['video_id'] if videos else None
         
         if target_vid:
             html = tpl_embed.replace('{{VIDEO_ID}}', target_vid)
@@ -100,7 +113,7 @@ def build_site():
             if not v['video_id']: continue
             list_html += f'<div class="card"><div class="video-box"><iframe src="https://www.youtube.com/embed/{v["video_id"]}" allowfullscreen></iframe></div><div class="desc"><span class="badge">{v["category"]}</span><h3>{v["title"]}</h3></div></div>'
         
-        hub_html = tpl_hub.replace('{{EZ_CODE}}', code).replace('{{VIDEO_LIST_HTML}}', list_html)
+        hub_html = tpl_hub.replace('{{PRODUCT_CODE}}', code).replace('{{VIDEO_LIST_HTML}}', list_html)
         with open(os.path.join(OUTPUT_DIR, 'hub', f"{code}.html"), 'w', encoding='utf-8') as f:
             f.write(hub_html)
         file_count += 1
@@ -112,3 +125,4 @@ def build_site():
 
 if __name__ == '__main__':
     build_site()
+
